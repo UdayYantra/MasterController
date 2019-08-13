@@ -2,25 +2,40 @@
  * @NApiVersion 2.x
  * @NScriptType ClientScript
 */
-define([ 'N/record','N/search','N/runtime','N/url','N/email', 'N/encode'], function(record, search, runtime, url, email, encode){
-    function pageInit (context){
+/*************************************************************
+ * File Header
+ * Script Type	: Client Script
+ * Script Name	: 
+ * File Name	: YIL_Master_Controller_CL.js
+ * Created On	: 09/08/2019
+ * Modified On	: 
+ * Created By	: Siddhant Mishra (Yantra Inc.)
+ * Modified By	: 
+ * Description	: This code sends notification Email after button click.
+ ************************************************************/
+define([ 'N/record','N/search','N/runtime','N/url','N/email'], function(record, search, runtime, url, email){
+    function pageInit(context){
 
     }
 
-    function buttonclick(recId, recType) {
+    function sendNotificationBtn(recId, recType) {
 		var recordType	= recType;
 		var recordId	= recId;
-		alert('record Id'+recordId);
-		alert('record Type'+recordType);
+		//alert('record Id'+recordId);
+		//alert('record Type'+recordType);
+		//alert('record Type'+recordType);
+		var appProcessApplicable	= '';
+		var approverId				= '';
+        var approverNm				= '';
+        var isEmailAppRequired		= '';		
 		
 		var recLoad	= record.load({type : recordType, id : recordId});
 		var suiteletURL = url.resolveScript({ scriptId : 'customscript_yil_master_sl', deploymentId : 'customdeploy_yil_master_contro_sl', returnExternalUrl: true, params: {recordType : recType}});
-		alert('suiteletURL'+suiteletURL);
+		//alert('suiteletURL'+suiteletURL);
 		
-		if(recType == 'vendor'){
-				
+		if(recType == 'vendor' || recType == 'customer'){
+			if(recType == 'vendor'){
 				var customrecordyil_master_controller_matrixSearchObj = fetchMatrix("Vendor");
-				
 				var searchResultCount = customrecordyil_master_controller_matrixSearchObj.runPaged().count;
 				log.debug("customrecordyil_master_controller_matrixSearchObj result count",searchResultCount);
 				customrecordyil_master_controller_matrixSearchObj.run().each(function(result){
@@ -28,75 +43,71 @@ define([ 'N/record','N/search','N/runtime','N/url','N/email', 'N/encode'], funct
 					approverId			= result.getValue({name : 'custrecord_yil_mcm_approver'});
 					approverNm			= result.getText({name : 'custrecord_yil_mcm_approver'});
 					isEmailAppRequired	= result.getValue({name : 'custrecord_yil_mcm_email_aprvl_requrd'});
-					
-				});					
-			}
-			else if(recType == 'itemgroup'){
-				
-				var customrecordyil_master_controller_matrixSearchObj = fetchMatrix("Item");
-				
-				var searchResultCount = customrecordyil_master_controller_matrixSearchObj.runPaged().count;
-				log.debug("customrecordyil_master_controller_matrixSearchObj result count",searchResultCount);
-				customrecordyil_master_controller_matrixSearchObj.run().each(function(result){
-					appProcessApplicable= result.getValue({name : 'custrecord_yil_mcm_is_aprv_appl'});
-					approverId			= result.getValue({name : 'custrecord_yil_mcm_approver'});
-					approverNm			= result.getText({name : 'custrecord_yil_mcm_approver'});
-					isEmailAppRequired	= result.getValue({name : 'custrecord_yil_mcm_email_aprvl_requrd'});
-					
 				});
-			}
-			else if(recType == 'customer'){
-				
-				var custName			= recLoad.getText({fieldId : 'companyname'});
-				
-				var customrecordyil_master_controller_matrixSearchObj = fetchMatrix("Customer");
-				
-				var searchResultCount = customrecordyil_master_controller_matrixSearchObj.runPaged().count;
-				log.debug("customrecordyil_master_controller_matrixSearchObj result count",searchResultCount);
-				customrecordyil_master_controller_matrixSearchObj.run().each(function(result){
-					appProcessApplicable= result.getValue({name : 'custrecord_yil_mcm_is_aprv_appl'});
-					approverId			= result.getValue({name : 'custrecord_yil_mcm_approver'});
-					approverNm			= result.getText({name : 'custrecord_yil_mcm_approver'});
-					isEmailAppRequired	= result.getValue({name : 'custrecord_yil_mcm_email_aprvl_requrd'});
-					
-				});
-			}
-			
-			if(appProcessApplicable == true && recType == 'itemgroup'){
-				recLoad.setValue({fieldId : 'isinactive', value : true})
-				recLoad.setValue({fieldId : 'custitem_yil_mcm_approval_status', value : 1});
-				recLoad.setValue({fieldId : 'custitem_yil_mcm_approver', value : approverId});
-				
-				var approvalStatus		= recLoad.getValue({fieldId : 'custitem_yil_mcm_approval_status'});
-				var approverName		= recLoad.getValue({fieldId : 'custitem_yil_mcm_approver'});
-				if(recType){
-					itemApprovalEmailTemplate(recLoad, approverId, approverNm, isEmailAppRequired, suiteletURL, recordId, approvalStatus);
-				}
-			}
-			else if((appProcessApplicable == true && recType == 'customer') || (appProcessApplicable == true && recType == 'vendor')){
-				log.debug('recType',recType);
-				recLoad.setValue({fieldId : 'isinactive', value : true})
-				recLoad.setValue({fieldId : 'custentity_yil_mcm_approval_status', value : 1});
-				recLoad.setValue({fieldId : 'custentity_yil_mcm_approver', value : approverId});
-				
 				var approvalStatus		= recLoad.getValue({fieldId : 'custentity_yil_mcm_approval_status'});
 				var approverName		= recLoad.getValue({fieldId : 'custentity_yil_mcm_approver'});
-				
+				vendorApprovalEmailTemplate(recLoad, approverId, approverNm, isEmailAppRequired, suiteletURL, recId, approvalStatus);
+			}
+			else if(recType == 'customer'){
+				//log.debug('inside if and else recType',recType);
+				var custName			= recLoad.getText({fieldId : 'companyname'});
+				var customrecordyil_master_controller_matrixSearchObj = fetchMatrix("Customer");
+				var searchResultCount = customrecordyil_master_controller_matrixSearchObj.runPaged().count;
+				log.debug("customrecordyil_master_controller_matrixSearchObj result count",searchResultCount);
+				customrecordyil_master_controller_matrixSearchObj.run().each(function(result){
+					appProcessApplicable= result.getValue({name : 'custrecord_yil_mcm_is_aprv_appl'});
+					approverId			= result.getValue({name : 'custrecord_yil_mcm_approver'});
+					approverNm			= result.getText({name : 'custrecord_yil_mcm_approver'});
+					isEmailAppRequired	= result.getValue({name : 'custrecord_yil_mcm_email_aprvl_requrd'});
+				});
+				var approvalStatus		= recLoad.getValue({fieldId : 'custentity_yil_mcm_approval_status'});
+				var approverName		= recLoad.getValue({fieldId : 'custentity_yil_mcm_approver'});
+				customerApprovalEmailTemplate(recLoad, approverId, approverNm, isEmailAppRequired, suiteletURL, recId, approvalStatus);
+			}
+				/**var approvalStatus		= recLoad.getValue({fieldId : 'custentity_yil_mcm_approval_status'});
+				var approverName		= recLoad.getValue({fieldId : 'custentity_yil_mcm_approver'});
 				if(recLoad && recType == 'customer'){
 					customerApprovalEmailTemplate(recLoad, approverId, approverNm, isEmailAppRequired, suiteletURL, recId, approvalStatus);
 					log.debug('inside if condition suiteletURL',suiteletURL);
-                }
+				}
 				else if(recLoad && recType == 'vendor'){
 					vendorApprovalEmailTemplate(recLoad, approverId, approverNm, isEmailAppRequired, suiteletURL, recId, approvalStatus);
-				}
-			}
-			else{
-				recLoad.setValue({fieldId : 'custentity_yil_mcm_approval_status', value : 2});				
-			}
-				
-			recLoad.save();
-			
-    }
+				}*/
+		}	
+		else{
+			//alert('Here...');
+			var customrecordyil_master_controller_matrixSearchObj = fetchMatrix("Item");
+		
+			var searchResultCount = customrecordyil_master_controller_matrixSearchObj.runPaged().count;
+			log.debug("customrecordyil_master_controller_matrixSearchObj result count",searchResultCount);
+			customrecordyil_master_controller_matrixSearchObj.run().each(function(result){
+				appProcessApplicable= result.getValue({name : 'custrecord_yil_mcm_is_aprv_appl'});
+				approverId			= result.getValue({name : 'custrecord_yil_mcm_approver'});
+				approverNm			= result.getText({name : 'custrecord_yil_mcm_approver'});
+				isEmailAppRequired	= result.getValue({name : 'custrecord_yil_mcm_email_aprvl_requrd'});
+			});
+			var approvalStatus		= recLoad.getValue({fieldId : 'custitem_yil_mcm_approval_status'});
+			var approverName		= recLoad.getValue({fieldId : 'custitem_yil_mcm_approver'});
+			itemApprovalEmailTemplate(recLoad, approverId, approverNm, isEmailAppRequired, suiteletURL, recId, approvalStatus);
+		}
+		/**var approvalStatus		= recLoad.getValue({fieldId : 'custitem_yil_mcm_approval_status'});
+		var approverName		= recLoad.getValue({fieldId : 'custitem_yil_mcm_approver'});
+		if(recType){
+			itemApprovalEmailTemplate(recLoad, approverId, approverNm, isEmailAppRequired, suiteletURL, recId, approvalStatus);
+		}*/
+	}
+	
+	function approvButtonFun(urlParam) {
+		//alert("urlParam"+urlParam);
+		//alert("Hi there!");
+		window.location.href = urlParam;
+	}
+	
+	function rejectButtonFun(urlParam) {
+		//alert("urlParam"+urlParam);
+		//alert("Hi there!");
+		window.location.href = urlParam;
+	}
 	
 	function customerApprovalEmailTemplate(recLoad, approverId, approverNm, isEmailAppRequired, suiteletURL, recId, approvalStatus)
 	{
@@ -202,7 +213,7 @@ define([ 'N/record','N/search','N/runtime','N/url','N/email', 'N/encode'], funct
 	function itemApprovalEmailTemplate(recLoad, approverId, approverNm, isEmailAppRequired, suiteletURL, recId, approvalStatus)
 	{
 		var itemName= '', itemId = '', approverName = '', subsidiaryName = '', statusText = '', userObj = '', userId = '';
-		
+		alert("Item");
 		var itemName		= recLoad.getText({fieldId : 'itemid'});
 		var itemId			= recLoad.getValue({fieldId : 'itemid'});
 		var approverName	= approverNm;
@@ -248,6 +259,8 @@ define([ 'N/record','N/search','N/runtime','N/url','N/email', 'N/encode'], funct
                 body: emailbody
                 //relatedRecords: {transactionId: Number(recordObj.id)}
             });
+			
+			
 	}
 	
 	function fetchMatrix(recName) {
@@ -271,7 +284,9 @@ define([ 'N/record','N/search','N/runtime','N/url','N/email', 'N/encode'], funct
 		
     return {
 		pageInit: pageInit,
-		buttonclick: buttonclick
+		sendNotificationBtn: sendNotificationBtn,
+		approvButtonFun: approvButtonFun,
+		rejectButtonFun : rejectButtonFun
 	}
 
 });
